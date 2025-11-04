@@ -47,9 +47,15 @@ while getopts ":hs:m:qvl:dr" flag;do
 done
 
 if ! [  -x "$hyperspace_path" ]; then
-	echo "Where is Hyperspace Deck Comand?" >&2
+	echo "Where is Hyperspace Deck Command?" >&2
 	exit 1
 	# open dialogue to create config
 fi
 
-"$hyperspace_path"
+"$hyperspace_path" --appimage-extract
+trap "rm squashfs-root -frd" SIGINT EXIT
+
+
+
+squashfs-root/hyperspace_32deck_32command --no-sandbox
+

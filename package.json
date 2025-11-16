@@ -1,0 +1,28 @@
+{
+  "name": "bedpost-modloader",
+  "version": "0.0.1",
+  "description": "Modloader for Sleeper Games' Hyperspace Deck Command",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/claire-aware/BedPost-Modloader.git"
+  },
+  "keywords": [
+    "modloader",
+    "game",
+    "decompiler"
+  ],
+  "author": "Claire Woods",
+  "license": "CC0-1.0",
+  "bugs": {
+    "url": "https://github.com/claire-aware/BedPost-Modloader/issues"
+  },
+  "homepage": "https://github.com/claire-aware/BedPost-Modloader#readme",
+  "devDependencies": {
+    "electron": "^39.1.0"
+  }
+}

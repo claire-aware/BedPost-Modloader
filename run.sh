@@ -9,6 +9,12 @@ hyperspace_path_overwritten=false
 mod_path="/mods"
 mod_path_overwritten=false
 config_path="/config.txt"
+runs_quiet=false
+runs_verbose=false
+running_in_tmp_folder=false
+base_resource_path=base_resources
+
+
 apply_config(){
 if [ -r "$config_path" ];then
 	if ! $hyperspace_path_overwritten; then
@@ -20,10 +26,9 @@ if [ -r "$config_path" ];then
 fi
 }
 apply_config
-runs_quiet=false
-runs_verbose=false
 
-while getopts ":hc:s:m:qvl:dr" flag;do
+# Apply console arguments
+while getopts ":hc:s:m:qvl:dr" flag; do
 	case $flag in
 		"h")
 			echo "BedPost Modloader for Sleeper Games' Hyperspace Deck Command. Version ${version}.
@@ -67,20 +72,80 @@ while getopts ":hc:s:m:qvl:dr" flag;do
 	esac
 done
 
+# Move to top directory of HDC installation
 if [ -x "$hyperspace_path" ]; then 
 	if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 		"$hyperspace_path" --appimage-extract
 		trap "rm squashfs-root -frd" SIGINT EXIT
 		hyperspace_path=squashfs-root
+		running_in_tmp_folder=true
 	elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
 		hyperspace_path="$hyperspace_path/.."
 	fi
 fi
 
+# Check if base game is in correct location
 if ! ([ -d "$hyperspace_path" ] && [ -e "$hyperspace_path/resources/app.asar" ]); then
 	echo "Modloader found invalid installation of Hyperspace Deck Command. Please supply a valid copy of HDC through a config file or by calling this script with -s"
 	exit 5
 fi
 
+# Move base game to temporary folder
+mv "$hyperspace_path/resources" "$hyperspace_path/$base_resource_path"
+mkdir "$hyperspace_path/resources"
+mkdir "$hyperspace_path/resources/app.asar"
+if ! $running_in_tmp_folder; then
+	trap "rmdir $hyperspace_path/resources" SIGINT EXIT
+	trap "mv $hyperspace_path/$base_resource_path $hyperspace_path/resources" SIGINT EXIT
+fi
+
+# Create modded game
+echo "const { app, BrowserWindow } = require('electron')
+
+const createWindow = () => {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600
+  })
+
+  win.loadFile('index.html')
+}
+
+app.whenReady().then(() => {
+  createWindow()
+})" > "$hyperspace_path/resources/app.asar/main.js"
+echo "<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv=\"Content-Security-Policy\"
+      content=\"default-src 'self'; script-src 'self'\"
+    />
+    <meta
+      http-equiv=\"X-Content-Security-Policy\"
+      content=\"default-src 'self'; script-src 'self'\"
+    />
+    <title>Hello from Electron renderer!</title>
+  </head>
+  <body>
+    <h1>Hello from Electron renderer!</h1>
+    <p>👋</p>
+  </body>
+</html>" > "$hyperspace_path/resources/app.asar/index.html"
+echo '{
+  "name": "hyperspace_32deck_32command",
+  "main": "main.js",
+  "productName": "Hyperspace Deck Command",
+  "description": "Hyperspace Deck Command",
+  "author": "Sleeper Games",
+  "version": "1.0.012",
+  "dependencies": {
+    "@electron/remote": "^2.0.8"
+  }
+}' > "$hyperspace_path/resources/app.asar/package.json"
+
+export ELECTRON_ENABLE_LOGGING=true
 "$hyperspace_path"/hyperspace_32deck_32command --no-sandbox
 

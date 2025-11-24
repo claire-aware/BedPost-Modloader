@@ -1,7 +1,7 @@
 #!/bin/bash
 version="0.0.1"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        hyperspace_path="/home/$(whoami)/.local/share/Steam/steamapps/common/Hyperspace Deck Command"
+  hyperspace_path="/home/$(whoami)/.local/share/Steam/steamapps/common/Hyperspace Deck Command"
 elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
 	hyperspace_path="C:\Program Files (x86)\Steam\steamapps\common\Hyperspace Deck Command" 
 fi
@@ -73,7 +73,7 @@ while getopts ":hc:s:m:qvl:dr" flag; do
 done
 
 # Move to top directory of HDC installation
-if [ -x "$hyperspace_path" ]; then 
+if [[ -x "$hyperspace_path" ]] && ! [[ -d "$hyperspace_path" ]]; then
 	if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 		"$hyperspace_path" --appimage-extract
 		trap "rm squashfs-root -frd" SIGINT EXIT
@@ -91,12 +91,12 @@ if ! ([ -d "$hyperspace_path" ] && [ -e "$hyperspace_path/resources/app.asar" ])
 fi
 
 # Move base game to temporary folder
-mv "$hyperspace_path/resources" "$hyperspace_path/$base_resource_path"
-mkdir "$hyperspace_path/resources"
+cp -R "$hyperspace_path/resources/"* "$hyperspace_path/$base_resource_path/"
+rm -R "$hyperspace_path/resources/"*
 mkdir "$hyperspace_path/resources/app.asar"
 if ! $running_in_tmp_folder; then
-	trap "rmdir $hyperspace_path/resources" SIGINT EXIT
-	trap "mv $hyperspace_path/$base_resource_path $hyperspace_path/resources" SIGINT EXIT
+	trap 'cp -R "$hyperspace_path/$base_resource_path/*" "$hyperspace_path/resources"' SIGINT EXIT
+	trap 'rm -R "$hyperspace_path/$base_resource_path"' SIGINT EXIT
 fi
 
 # Create modded game
@@ -147,5 +147,9 @@ echo '{
 }' > "$hyperspace_path/resources/app.asar/package.json"
 
 export ELECTRON_ENABLE_LOGGING=true
-"$hyperspace_path"/hyperspace_32deck_32command --no-sandbox
+if [[ -e "$hyperspace_path"/hyperspace_32deck_32command ]]; then
+  "$hyperspace_path"/hyperspace_32deck_32command --no-sandbox
+elif [[ -e "$hyperspace_path/Hyperspace Deck Command.exe" ]]; then
+  steam steam://rungameid/2711190
+fi
 
